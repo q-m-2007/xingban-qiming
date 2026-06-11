@@ -1,6 +1,26 @@
 # 星伴·启明 AI教学引擎
 
+> **v1.0.0** | 2026-06-11 | [GitHub](https://github.com/q-m-2007/xingban-qiming)
+
 基于统一教学管道的个性化AI教学系统（融合13条铁律）
+
+## 版本历史
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| v1.0.0 | 2026-06-11 | 首发版本：统一教学管道 + 前端网站 + LLM集成 |
+
+## 在线体验
+
+- 网站：http://124.220.62.96
+- 域名：xingban.xinxunai.com.cn（待解析）
+
+## 功能特性
+
+- **首页**：产品介绍、功能展示
+- **登录/注册**：用户认证
+- **AI对话**：接入DeepSeek LLM的数学辅导
+- **学习诊断**：15维认知画像报告
 
 ## 算法架构
 
@@ -77,7 +97,7 @@ docker-compose logs -f
 
 ```bash
 # 克隆代码
-git clone <your-repo-url>
+git clone https://github.com/q-m-2007/xingban-qiming.git
 cd xingban-qiming
 
 # 设置环境变量
@@ -95,15 +115,17 @@ chmod +x deploy.sh
 
 ```bash
 # 聊天接口
-curl -X POST https://qiming.xinxunai.com.cn/api/v3/chat/message \
+curl -X POST http://124.220.62.96/api/v3/chat/message \
   -H "Content-Type: application/json" \
-  -d '{"student_id": "test", "message": "什么是因数", "topic": "factor"}'
+  -H "Authorization: Bearer your_token" \
+  -d '{"message": "什么是因数"}'
 
 # 学生诊断
-curl https://qiming.xinxunai.com.cn/api/v3/student/test/diagnosis
+curl http://124.220.62.96/api/v3/student/diagnosis \
+  -H "Authorization: Bearer your_token"
 
 # 健康检查
-curl https://qiming.xinxunai.com.cn/api/v3/health
+curl http://124.220.62.96/api/v3/health
 ```
 
 ## 文件结构
@@ -112,7 +134,10 @@ curl https://qiming.xinxunai.com.cn/api/v3/health
 xingban-qiming/
 ├── main.py              # FastAPI主应用
 ├── llm_client.py        # LLM客户端
+├── database.py          # 数据库模块
+├── auth.py              # 认证模块
 ├── api/                 # API接口
+│   ├── auth.py          # 认证API
 │   ├── v3_chat.py       # V3统一管道接口
 │   ├── chat.py          # V1兼容接口
 │   └── v2_chat.py       # V2兼容接口
@@ -127,9 +152,32 @@ xingban-qiming/
 │   ├── execution.py     # 执行层
 │   ├── evolution.py     # 进化层
 │   └── pipeline.py      # 管道编排器
+├── static/              # 前端文件
+│   ├── index.html       # 首页
+│   ├── chat.html        # 对话页
+│   ├── login.html       # 登录页
+│   ├── register.html    # 注册页
+│   ├── diagnosis.html   # 诊断页
+│   ├── css/style.css    # 样式
+│   └── js/app.js        # 逻辑
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 ├── deploy.sh
 └── README.md
 ```
+
+## 技术栈
+
+- **前端**：HTML/CSS/JS，苹果科技风格
+- **后端**：FastAPI + SQLite
+- **算法**：七层统一教学管道（13条铁律）
+- **AI**：DeepSeek LLM
+- **部署**：Docker + Nginx
+
+## 服务器信息
+
+- IP：124.220.62.96
+- 用户：ubuntu
+- Docker容器：xingban-qiming
+- 端口：8080（内部）→ 80（Nginx）
