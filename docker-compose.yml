@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
-  qiming:
+  xingban:
     build: .
-    container_name: qiming-api
+    container_name: xingban-qiming
     ports:
-      - "8000:8000"
+      - "8080:8000"
     environment:
       - LLM_PROVIDER=deepseek
       - LLM_API_KEY=${LLM_API_KEY}
@@ -16,8 +14,3 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v3/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3

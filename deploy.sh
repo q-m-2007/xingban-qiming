@@ -1,5 +1,5 @@
 #!/bin/bash
-# 星伴·启明 Python版部署脚本
+# 星伴·启明 部署脚本
 
 set -e
 
@@ -9,11 +9,6 @@ echo "=== 星伴·启明 部署脚本 ==="
 if ! command -v docker &> /dev/null; then
     echo "安装Docker..."
     curl -fsSL https://get.docker.com | sh
-fi
-
-if ! command -v docker-compose &> /dev/null; then
-    echo "安装Docker Compose..."
-    pip install docker-compose
 fi
 
 # 设置环境变量
@@ -28,11 +23,17 @@ fi
 
 # 构建并启动
 echo "构建Docker镜像..."
-docker-compose build
+sudo docker compose build
 
 echo "启动服务..."
-docker-compose up -d
+sudo docker compose up -d
+
+# 配置Nginx
+echo "配置Nginx..."
+sudo cp nginx.conf /etc/nginx/sites-available/xingban
+sudo ln -sf /etc/nginx/sites-available/xingban /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 
 echo "=== 部署完成 ==="
-echo "API地址: https://qiming.xinxunai.com.cn"
-echo "健康检查: https://qiming.xinxunai.com.cn/api/v3/health"
+echo "网站地址: https://xingban.xinxunai.com.cn"
+echo "健康检查: https://xingban.xinxunai.com.cn/api/v3/health"

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI辅导 - 星伴·启明</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="chat-page">
+        <!-- 头部 -->
+        <div class="chat-header">
+            <div class="title">
+                <a href="/" class="logo" style="text-decoration:none;color:inherit;">
+                    <div class="logo-icon">⭐</div>
+                </a>
+                <div>
+                    <h2>星伴·启明</h2>
+                    <p>四年级数学 · AI辅导</p>
+                </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;">
+                <span id="user-nickname" style="font-size:14px;color:var(--text-light);"></span>
+                <button id="new-chat-btn" class="btn btn-secondary" style="padding:8px 16px;font-size:13px;">新对话</button>
+                <a href="/diagnosis" class="btn btn-ghost" style="padding:8px 16px;font-size:13px;">学习诊断</a>
+                <button onclick="logout()" class="btn btn-ghost" style="padding:8px 16px;font-size:13px;">退出</button>
+            </div>
+        </div>
+
+        <!-- 消息区 -->
+        <div class="chat-messages" id="messages">
+            <div class="message system">你好！我是星伴·启明，你的AI数学辅导老师。有什么数学问题想问我吗？</div>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="chat-input">
+            <div class="input-wrapper">
+                <input type="text" id="chat-input" placeholder="输入你的数学问题..." autocomplete="off">
+                <button id="send-btn">↑</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
