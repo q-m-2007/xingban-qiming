@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星伴·启明 CCG追问引擎</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message.user {
+            align-items: flex-end;
+        }
+        
+        .message.ai {
+            align-items: flex-start;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .message.ai .message-bubble {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .message-meta {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            padding: 0 10px;
+        }
+        
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-container input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #eee;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .input-container input:focus {
+            border-color: #667eea;
+        }
+        
+        .input-container button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .input-container button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .input-container button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .stats-panel {
+            padding: 20px;
+            background: #f9f9f9;
+            border-top: 1px solid #eee;
+            display: none;
+        }
+        
+        .stats-panel.visible {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .stat-card .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        
+        .toggle-stats {
+            text-align: center;
+            padding: 10px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .toggle-stats:hover {
+            background: #e0e0e0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+        
+        .loading.visible {
+            display: block;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 20px;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 星伴·启明</h1>
+            <p>CCG认知冲突图谱追问引擎 v1.0</p>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message ai">
+                <div class="message-bubble">
+                    你好！我是星伴·启明，你的AI学习助手。我会通过追问帮你发现思维中的矛盾，让你自己找到答案。请告诉我你在思考什么数学问题？
+                </div>
+                <div class="message-meta">AI助手</div>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="输入你的想法..." autocomplete="off">
+            <button id="sendBtn" onclick="sendMessage()">发送</button>
+        </div>
+        
+        <div class="toggle-stats" onclick="toggleStats()">
+            📊 查看统计信息
+        </div>
+        
+        <div class="stats-panel" id="statsPanel">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statBeliefs">0</div>
+                    <div class="stat-label">信念数量</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statConflicts">0</div>
+                    <div class="stat-label">活跃冲突</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statRelations">0</div>
+                    <div class="stat-label">关系数量</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statRound">0</div>
+                    <div class="stat-label">追问轮次</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let sessionId = null;
+        let roundCount = 0;
+        
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 添加用户消息
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // 显示加载状态
+            document.getElementById('loading').classList.add('visible');
+            document.getElementById('sendBtn').disabled = true;
+            
+            try {
+                // 调用API
+                const response = await fetch(`${API_BASE}/chat/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        student_input: message,
+                        context: {
+                            grade: 'high_school',
+                            subject: 'math'
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // 更新session ID
+                sessionId = data.session_id;
+                
+                // 添加AI回复
+                addMessage(data.ai_response, 'ai', data.question_type);
+                
+                // 更新统计
+                roundCount++;
+                updateStats(data);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('抱歉，出现了错误。请重试。', 'ai');
+            } finally {
+                // 隐藏加载状态
+                document.getElementById('loading').classList.remove('visible');
+                document.getElementById('sendBtn').disabled = false;
+                input.focus();
+            }
+        }
+        
+        // 添加消息到聊天容器
+        function addMessage(text, type, questionType = null) {
+            const container = document.getElementById('chatContainer');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+            
+            const meta = document.createElement('div');
+            meta.className = 'message-meta';
+            
+            if (type === 'user') {
+                meta.textContent = '你';
+            } else {
+                let metaText = 'AI助手';
+                if (questionType) {
+                    const typeNames = {
+                        'guide_discovery': '引导发现',
+                        'counterexample': '反例挑战',
+                        'boundary_explore': '边界探索',
+                        'path_compare': '路径对比',
+                        'decompose': '拆解引导'
+                    };
+                    metaText += ` · ${typeNames[questionType] || questionType}`;
+                }
+                meta.textContent = metaText;
+            }
+            
+            messageDiv.appendChild(bubble);
+            messageDiv.appendChild(meta);
+            container.appendChild(messageDiv);
+            
+            // 滚动到底部
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // 更新统计信息
+        function updateStats(data) {
+            document.getElementById('statBeliefs').textContent = data.beliefs_extracted ? data.beliefs_extracted.length : 0;
+            document.getElementById('statConflicts').textContent = data.conflicts_detected ? data.conflicts_detected.length : 0;
+            document.getElementById('statRound').textContent = roundCount;
+            
+            // 如果有session，获取详细统计
+            if (sessionId) {
+                fetchSessionStats();
+            }
+        }
+        
+        // 获取会话统计
+        async function fetchSessionStats() {
+            try {
+                const response = await fetch(`${API_BASE}/chat/${sessionId}/statistics`);
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('statBeliefs').textContent = stats.total_beliefs || 0;
+                    document.getElementById('statConflicts').textContent = stats.active_conflicts || 0;
+                    document.getElementById('statRelations').textContent = stats.total_relations || 0;
+                }
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+        
+        // 切换统计面板
+        function toggleStats() {
+            const panel = document.getElementById('statsPanel');
+            panel.classList.toggle('visible');
+        }
+        
+        // 回车发送
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // 初始焦点
+        document.getElementById('userInput').focus();
+    </script>
+</body>
+</html>

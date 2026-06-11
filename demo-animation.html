@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星伴·启明</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#000;
+  overflow:hidden;width:100vw;height:100vh;
+  font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  user-select:none;
+}
+canvas{position:fixed;top:0;left:0;width:100vw;height:100vh}
+#ui{
+  position:fixed;bottom:48px;left:0;width:100%;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  pointer-events:none;z-index:10;
+}
+#title{
+  color:rgba(255,255,255,0.75);font-size:22px;font-weight:300;
+  letter-spacing:12px;text-shadow:0 0 30px rgba(100,130,200,0.15);
+}
+#sub{
+  color:rgba(255,255,255,0.25);font-size:11px;letter-spacing:5px;
+  font-weight:300;
+}
+#btn{
+  pointer-events:auto;margin-top:20px;
+  width:170px;height:46px;border-radius:50%;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03);
+  color:rgba(255,255,255,0.4);font-size:13px;font-weight:300;
+  letter-spacing:3px;cursor:pointer;transition:all 1s;
+}
+#btn:hover{
+  background:rgba(255,255,255,0.06);
+  border-color:rgba(255,255,255,0.15);
+  color:rgba(255,255,255,0.55);
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="title">星伴 · 启明</div>
+  <div id="sub">Every thought is a universe</div>
+  <button id="btn">开始探索</button>
+</div>
+<script>
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+let W,H;
+function rs(){W=c.width=window.innerWidth;H=c.height=window.innerHeight}
+rs();window.addEventListener('resize',rs);
+
+// ═══════════════════════════════════════════════
+// 星系（Spiral Galaxy）- 从顶视角看的旋涡星系
+// ═══════════════════════════════════════════════
+class Galaxy {
+  constructor(){
+    this.x=W*0.3+Math.random()*W*0.4;
+    this.y=H*0.2+Math.random()*H*0.6;
+    this.radius=80+Math.random()*120;
+    this.arms=2+Math.floor(Math.random()*2);
+    this.armAngle=Math.random()*Math.PI*2;
+    this.tightness=3+Math.random()*4; // 旋臂紧密程度
+    this.tiltX=0.6+Math.random()*0.8; // 透视倾斜
+    this.tiltY=0.6+Math.random()*0.8;
+    this.rotation=Math.random()*Math.PI*2;
+    this.brightness=0.08+Math.random()*0.12;
+    this.hue=200+Math.random()*60; // 蓝-青色为主
+    this.stars=1000+Math.floor(Math.random()*800);
+  }
+
+  draw(time){
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    ctx.scale(this.tiltX,this.tiltY);
+    ctx.rotate(this.rotation);
+
+    const r=this.radius;
+    const t=time*0.00005;
+
+    // 星系核球 - 小而亮
+    for(let i=0;i<100;i++){
+      const dist=Math.random()*r*0.2;
+      const angle=Math.random()*Math.PI*2;
+      const x=Math.cos(angle)*dist;
+      const y=Math.sin(angle)*dist;
+      const brightness=0.1+Math.random()*0.9;
+      const size=0.5+Math.random()*1.5;
+      ctx.beginPath();
+      ctx.arc(x,y,size,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,245,230,${brightness*0.6*this.brightness*3})`;
+      ctx.fill();
+    }
+
+    // 旋臂
+    for(let arm=0;arm<this.arms;arm++){
+      const armOffset=(arm/this.arms)*Math.PI*2;
+      for(let i=0;i<this.stars/this.arms;i++){
+        const rad=Math.random();
+        const angle=rad*this.tightness*Math.PI+armOffset+t;
+        const scatter=(1-rad)*r*0.2;
+        const dist=r*rad+Math.sin(angle*3)*scatter;
+        const x=Math.cos(angle)*dist;
+        const y=Math.sin(angle)*dist;
+
+        // 旋臂上的星团
+        const brightness=0.1+Math.random()*0.9;
+        const size=0.2+Math.random()*1.2;
+        // 越靠近中心越暖色,边缘偏蓝
+        const hue=this.hue+rad*30-Math.random()*20;
+        const sat=20+Math.random()*30;
+        const lig=40+Math.random()*40;
+
+        // 浓密区域形成星云
+        if(brightness>0.8&&rad>0.3){
+          ctx.beginPath();
+          ctx.arc(x,y,size*2,0,Math.PI*2);
+          ctx.fillStyle=`hsla(${hue},${sat}%,${lig}%,${this.brightness*0.5})`;
+          ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(x,y,size,0,Math.PI*2);
+        // 中心偏暖,边缘偏蓝
+        const rCol=200+55*(1-rad);
+        const gCol=180+75*(1-rad);
+        const bCol=200+55*rad;
+        ctx.fillStyle=`rgba(${rCol},${gCol},${bCol},${brightness*this.brightness})`;
+        ctx.fill();
+      }
+    }
+
+    // 星系外围的暗弱光晕
+    const glowGrd=ctx.createRadialGradient(0,0,0,0,0,r*1.2);
+    glowGrd.addColorStop(0,`hsla(${this.hue},30%,40%,${this.brightness*2})`);
+    glowGrd.addColorStop(0.3,`hsla(${this.hue+20},20%,25%,${this.brightness*0.8})`);
+    glowGrd.addColorStop(0.6,`hsla(${this.hue+40},15%,15%,${this.brightness*0.3})`);
+    glowGrd.addColorStop(1,`hsla(${this.hue+60},10%,5%,0)`);
+    ctx.fillStyle=glowGrd;
+    ctx.fillRect(-r*1.2,-r*1.2,r*2.4,r*2.4);
+
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// 深空恒星（小、淡、疏）
+// ═══════════════════════════════════════════════
+const bgStars=[];
+for(let i=0;i<1200;i++){
+  bgStars.push({
+    x:Math.random()*W,y:Math.random()*H,
+    r:Math.random()*0.8+0.1,
+    phase:Math.random()*Math.PI*2,
+    speed:0.0002+Math.random()*0.001,
+    // 大部分极暗
+    baseAlpha:Math.random()*0.3+0.05
+  });
+}
+
+// ═══════════════════════════════════════════════
+// 星云（气体星云，像猎户座大星云那种）
+// ═══════════════════════════════════════════════
+const nebulas=[];
+for(let i=0;i<4;i++){
+  nebulas.push({
+    x:W*0.1+Math.random()*W*0.8,
+    y:H*0.1+Math.random()*H*0.8,
+    r:60+Math.random()*150,
+    hue:200+Math.random()*60, // 蓝-紫范围
+    alpha:0.01+Math.random()*0.02,
+    speed:0.0001+Math.random()*0.0002
+  });
+}
+
+// ═══════════════════════════════════════════════
+// 星系实例
+// ═══════════════════════════════════════════════
+const galaxies=[];
+for(let i=0;i<3;i++)galaxies.push(new Galaxy());
+
+// ═══════════════════════════════════════════════
+// 虫洞效果
+// ═══════════════════════════════════════════════
+let whActive=false,whStart=0;
+function triggerWormhole(){
+  if(whActive)return;
+  whActive=true;whStart=performance.now();
+  setTimeout(()=>{whActive=false;},4000);
+}
+
+// ═══════════════════════════════════════════════
+// 主循环
+// ═══════════════════════════════════════════════
+function draw(t){
+  const now=performance.now();
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+
+  // 1. 背景恒星
+  for(const s of bgStars){
+    const flicker=Math.sin(now*s.speed+s.phase)*0.3+0.7;
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${s.baseAlpha*flicker})`;
+    ctx.fill();
+  }
+
+  // 2. 星云
+  for(const n of nebulas){
+    const drift=Math.sin(now*n.speed)*20;
+    const grd=ctx.createRadialGradient(
+      n.x+drift,n.y+Math.cos(now*n.speed*0.7)*15,0,
+      n.x+drift,n.y, n.r
+    );
+    grd.addColorStop(0,`hsla(${n.hue},50%,40%,${n.alpha})`);
+    grd.addColorStop(0.4,`hsla(${n.hue+20},40%,25%,${n.alpha*0.5})`);
+    grd.addColorStop(1,`hsla(${n.hue+40},30%,10%,0)`);
+    ctx.fillStyle=grd;
+    ctx.fillRect(n.x-n.r,n.y-n.r,n.r*2,n.r*2);
+  }
+
+  // 3. 星系
+  for(const g of galaxies) g.draw(now);
+
+  // 4. 虫洞
+  if(whActive){
+    const el=now-whStart;
+    const prog=Math.min(el/4000,1);
+    const cx=W/2,cy=H/2;
+
+    // 引力透镜效应 - 星系被拉伸
+    if(prog<0.4){
+      const t=prog/0.4;
+      // 围绕中心画被吸入的粒子流
+      for(let i=0;i<50;i++){
+        const a=Math.random()*Math.PI*2;
+        const dist=Math.random()*Math.min(W,H)*0.35;
+        const rDist=dist*(1-t*0.7);
+        const px=cx+Math.cos(a)*rDist;
+        const py=cy+Math.sin(a)*rDist;
+        ctx.beginPath();
+        ctx.arc(px,py,0.3+Math.random()*0.5,0,Math.PI*2);
+        ctx.fillStyle=`rgba(200,200,230,${(1-dist/(Math.min(W,H)*0.35))*0.15*t})`;
+        ctx.fill();
+      }
+      // 中心暗区
+      const darkR=5+t*15;
+      const drk=ctx.createRadialGradient(cx,cy,0,cx,cy,darkR*3);
+      drk.addColorStop(0,`rgba(0,0,0,${t*0.7})`);
+      drk.addColorStop(1,`rgba(0,0,0,0)`);
+      ctx.fillStyle=drk;
+      ctx.fillRect(cx-darkR*3,cy-darkR*3,darkR*6,darkR*6);
+    }
+    // 光子环
+    else if(prog<0.7){
+      const t=(prog-0.4)/0.3;
+      // 爱因斯坦环
+      for(let r=0;r<12;r++){
+        const ringR=15+r*4+t*2;
+        ctx.beginPath();
+        ctx.arc(cx,cy,ringR,0,Math.PI*2);
+        const alpha=Math.sin(t*Math.PI*3+r*0.5)*0.06+0.04;
+        ctx.strokeStyle=`rgba(200,200,240,${alpha})`;
+        ctx.lineWidth=0.5+r*0.1;
+        ctx.stroke();
+      }
+      // 中心光晕
+      const core=ctx.createRadialGradient(cx,cy,0,cx,cy,25+t*10);
+      core.addColorStop(0,`rgba(255,250,240,${0.02+t*0.03})`);
+      core.addColorStop(1,`rgba(200,200,255,0)`);
+      ctx.fillStyle=core;
+      ctx.fillRect(cx-50,cy-50,100,100);
+    }
+    // 消散
+    else{
+      const t=(prog-0.7)/0.3;
+      const f=1-t;
+      for(let r=0;r<8;r++){
+        const ringR=15+r*4;
+        ctx.beginPath();
+        ctx.arc(cx,cy,ringR,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(200,200,240,${f*0.03})`;
+        ctx.lineWidth=0.3;
+        ctx.stroke();
+      }
+      // 闪白 fade out
+      ctx.fillStyle=`rgba(255,250,240,${t*0.04})`;
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  requestAnimationFrame(draw);
+}
+
+document.getElementById('btn').addEventListener('click',triggerWormhole);
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+{
+    "start_date": "2026-06-01",
+    "current_phase": "算法优化 + 知识库构建",
+    "completed_tasks": [
+        "1.1 重构FastAPI项目结构",
+        "1.2 实现Belief/Conflict数据模型",
+        "1.3 实现NetworkX图结构封装",
+        "1.4 实现SQLite持久化层",
+        "1.5 编写单元测试",
+        "2.1 设计信念提取Prompt（准高一版本）",
+        "2.2 实现LLM调用封装",
+        "2.3 实现结构化输出解析",
+        "2.4 实现置信度校准算法",
+        "2.5 编写测试用例",
+        "3.1 实现逻辑矛盾检测规则",
+        "3.2 实现冲突严重度计算",
+        "3.3 实现教学价值计算",
+        "3.4 实现学生就绪度计算",
+        "3.5 实现冲突排序算法",
+        "3.6 编写测试用例",
+        "4.1 实现追问类型决策逻辑",
+        "4.2 设计追问生成Prompt",
+        "4.3 实现追问生成器",
+        "4.4 实现约束条件检查",
+        "4.5 编写测试用例",
+        "5.1 实现对话状态机",
+        "5.2 实现会话管理",
+        "5.3 设计RESTful API",
+        "5.4 实现WebSocket实时通信",
+        "5.5 编写API文档",
+        "6.1 React Native项目初始化",
+        "6.2 对话界面UI设计",
+        "6.3 实现消息列表",
+        "6.4 实现输入组件",
+        "6.5 集成语音输入API",
+        "7.1 端到端测试",
+        "7.2 边界case测试",
+        "7.3 性能测试",
+        "7.4 Bug修复",
+        "7.5 部署准备",
+        "8.1 修复DeepSeek API key问题",
+        "8.2 修复.env加载路径问题",
+        "8.3 实现信念演化引擎v2",
+        "8.4 实现LLM辅助冲突检测",
+        "8.5 优化追问语言（口语化、有感情）",
+        "8.6 构建L1课本知识库（一元二次方程）",
+        "8.7 构建L3误解模式库（一元二次方程）"
+    ],
+    "in_progress": [
+        "知识库分层构建（L1/L2/L3/L4）",
+        "接入知识库到冲突检测流程"
+    ],
+    "next_steps": [
+        "审核L1课本知识库准确性",
+        "生成L2题型解法库",
+        "生成L4追问策略库",
+        "将知识库接入系统",
+        "构建小程序前端"
+    ],
+    "issues": [
+        "每轮对话需要2次LLM调用，响应速度3-5秒",
+        "只测了数学方程，其他题型未验证",
+        "前端还是Web demo，不是小程序"
+    ],
+    "architecture": {
+        "current": "全LLM（信念提取+冲突检测+追问生成）",
+        "target": "LLM理解语言 + 知识库决策 + LLM生成自然语言",
+        "knowledge_base_layers": {
+            "L1": "课本知识（定义、公式、定理）- 已完成一元二次方程",
+            "L2": "题型解法（标准解题步骤）- 待做",
+            "L3": "误解模式（学生常见错误）- 已完成一元二次方程",
+            "L4": "追问策略（如何引导）- 待做"
+        }
+    },
+    "key_files": {
+        "backend": "~/xingban-qiming/backend/app/",
+        "engine_v2": "~/xingban-qiming/backend/app/engine/conversation_manager_v2.py",
+        "belief_extractor_v2": "~/xingban-qiming/backend/app/engine/belief_extractor_v2.py",
+        "question_generator": "~/xingban-qiming/backend/app/engine/question_generator.py",
+        "conflict_detector": "~/xingban-qiming/backend/app/engine/conflict_detector.py",
+        "knowledge_base": "~/xingban-qiming/data/",
+        "L1_textbook": "~/xingban-qiming/data/textbook_L1_quadratic.json",
+        "L3_misconceptions": "~/xingban-qiming/data/misconceptions_quadratic.json"
+    },
+    "server_status": {
+        "port": 8000,
+        "api_key": "sk-f7c05d96ccd94644991ff18b3568148b",
+        "env_file": "~/xingban-qiming/backend/app/.env"
+    }
+}

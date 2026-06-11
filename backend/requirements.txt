@@ -1,0 +1,6 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+chromadb==0.6.2
+openai==1.80.0
+pydantic==2.10.5
+python-multipart==0.0.18
