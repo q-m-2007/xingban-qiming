@@ -1,32 +1,49 @@
 """
 用户认证模块
-简易token认证
+Token认证 + 过期机制
 """
 
 import hashlib
 import time
+import logging
 from typing import Optional, Dict
 from fastapi import HTTPException, Header
+
+logger = logging.getLogger(__name__)
 
 # Token存储（生产环境应用Redis）
 _tokens: Dict[str, Dict] = {}
 
+# Token过期时间（秒）
+TOKEN_EXPIRE = 86400  # 24小时
+
 
 def generate_token(user_id: int, username: str) -> str:
-    """生成token"""
-    raw = f"{user_id}:{username}:{time.time()}"
-    token = hashlib.md5(raw.encode()).hexdigest()
+    """生成Token"""
+    raw = f"{user_id}:{username}:{time.time()}:{hashlib.md5(str(time.time()).encode()).hexdigest()}"
+    token = hashlib.sha256(raw.encode()).hexdigest()
     _tokens[token] = {
         "user_id": user_id,
         "username": username,
         "created_at": time.time(),
+        "expires_at": time.time() + TOKEN_EXPIRE,
     }
     return token
 
 
 def verify_token(token: str) -> Optional[Dict]:
-    """验证token"""
-    return _tokens.get(token)
+    """验证Token（含过期检查）"""
+    if token not in _tokens:
+        return None
+
+    token_data = _tokens[token]
+
+    # 检查过期
+    if time.time() > token_data.get("expires_at", 0):
+        del _tokens[token]
+        return None
+
+    return token_data
 
 
 def get_current_user(authorization: Optional[str] = Header(None)) -> Dict:
@@ -34,7 +51,6 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> Dict:
     if not authorization:
         raise HTTPException(status_code=401, detail="未登录")
 
-    # 支持 "Bearer token" 格式
     token = authorization
     if token.startswith("Bearer "):
         token = token[7:]
@@ -47,5 +63,15 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> Dict:
 
 
 def remove_token(token: str):
-    """删除token（登出）"""
+    """删除Token（登出）"""
     _tokens.pop(token, None)
+
+
+def cleanup_expired_tokens():
+    """清理过期Token"""
+    now = time.time()
+    expired = [t for t, d in _tokens.items() if now > d.get("expires_at", 0)]
+    for t in expired:
+        del _tokens[t]
+    if expired:
+        logger.info(f"清理了 {len(expired)} 个过期Token")

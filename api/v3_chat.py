@@ -34,7 +34,7 @@ def get_llm() -> LLMClient:
 def get_pipeline() -> UnifiedTeachingPipeline:
     global _pipeline
     if _pipeline is None:
-        _pipeline = UnifiedTeachingPipeline(llm_client=get_llm())
+        _pipeline = UnifiedTeachingPipeline(llm_client=get_llm(), db_module=database)
     return _pipeline
 
 

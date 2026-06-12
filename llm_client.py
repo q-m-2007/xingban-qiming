@@ -5,9 +5,14 @@ LLM客户端封装
 
 import os
 import json
+import re
+import logging
+import asyncio
 import httpx
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -20,6 +25,7 @@ class LLMConfig:
     max_tokens: int = 500
     temperature: float = 0.7
     timeout: int = 30
+    max_retries: int = 3
 
 
 class LLMClient:
@@ -50,17 +56,7 @@ class LLMClient:
         system: Optional[str] = None,
         temperature: Optional[float] = None
     ) -> str:
-        """
-        调用LLM生成回复
-
-        Args:
-            prompt: 用户消息
-            system: 系统提示词
-            temperature: 温度参数
-
-        Returns:
-            LLM回复文本
-        """
+        """调用LLM生成回复（带重试）"""
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -68,11 +64,18 @@ class LLMClient:
 
         temp = temperature if temperature is not None else self.config.temperature
 
-        try:
-            response = await self._call_api(messages, temp)
-            return response
-        except Exception as e:
-            raise LLMError(f"LLM调用失败: {str(e)}")
+        last_error = None
+        for attempt in range(self.config.max_retries):
+            try:
+                response = await self._call_api(messages, temp)
+                return response
+            except Exception as e:
+                last_error = e
+                logger.warning(f"LLM调用失败 (尝试 {attempt + 1}/{self.config.max_retries}): {e}")
+                if attempt < self.config.max_retries - 1:
+                    await asyncio.sleep(1 * (attempt + 1))
+
+        raise LLMError(f"LLM调用失败，已重试{self.config.max_retries}次: {last_error}")
 
     async def chat_json(
         self,
@@ -80,33 +83,35 @@ class LLMClient:
         system: Optional[str] = None,
         temperature: Optional[float] = None
     ) -> Dict[str, Any]:
-        """
-        调用LLM并解析JSON响应
-
-        Args:
-            prompt: 用户消息（应要求返回JSON）
-            system: 系统提示词
-            temperature: 温度参数
-
-        Returns:
-            解析后的JSON对象
-        """
+        """调用LLM并解析JSON响应"""
         response = await self.chat(prompt, system, temperature)
+        return self._parse_json(response)
 
-        # 尝试提取JSON
+    def _parse_json(self, text: str) -> Dict[str, Any]:
+        """健壮的JSON解析"""
+        # 尝试直接解析
         try:
-            # 先尝试直接解析
-            return json.loads(response)
+            return json.loads(text)
         except json.JSONDecodeError:
-            # 尝试提取```json ... ```中的内容
-            if "```json" in response:
-                json_str = response.split("```json")[1].split("```")[0].strip()
-                return json.loads(json_str)
-            elif "```" in response:
-                json_str = response.split("```")[1].split("```")[0].strip()
-                return json.loads(json_str)
-            else:
-                raise LLMError(f"无法解析LLM返回的JSON: {response[:200]}")
+            pass
+
+        # 尝试提取```json ... ```中的内容
+        json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group(1).strip())
+            except json.JSONDecodeError:
+                pass
+
+        # 尝试提取第一个JSON对象
+        json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group(0))
+            except json.JSONDecodeError:
+                pass
+
+        raise LLMError(f"无法解析LLM返回的JSON: {text[:200]}")
 
     async def _call_api(self, messages: list, temperature: float) -> str:
         """调用API"""
@@ -131,6 +136,8 @@ class LLMClient:
             data = resp.json()
             return data["choices"][0]["message"]["content"]
         except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:
+                raise LLMError("API速率限制，请稍后重试")
             raise LLMError(f"API HTTP错误 {e.response.status_code}: {e.response.text[:200]}")
         except httpx.RequestError as e:
             raise LLMError(f"API请求失败: {str(e)}")

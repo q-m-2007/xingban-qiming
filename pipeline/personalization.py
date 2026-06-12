@@ -192,34 +192,46 @@ class InertiaDetector:
 class PersonalizationLayer:
     """个性化层主类"""
 
-    def __init__(self):
+    def __init__(self, db_module=None):
         self.difficulty_adjuster = DifficultyAdjuster()
         self.pacing_controller = PacingController()
         self.inertia_detector = InertiaDetector()
+        self.db = db_module
+        self._last_response_time: Dict[str, float] = {}
+        self._consecutive_questions: Dict[str, int] = {}
 
     def process(self, context: PipelineContext) -> PersonalizationResult:
         """处理个性化层逻辑"""
         profile = context.profile
         state = context.reasoning.state if context.reasoning else StudentState.EXPLORING
+        student_id = context.student_id
 
         # 1. 难度调节
-        recent_performance = self._get_recent_performance(context.student_id)
+        recent_performance = self._get_recent_performance(student_id)
         difficulty = self.difficulty_adjuster.adjust(
             profile, recent_performance, state
         )
 
         # 2. 节奏控制
-        time_since_last = self._get_time_since_last_response(context.student_id)
-        consecutive = self._get_consecutive_questions(context.student_id)
+        time_since_last = self._get_time_since_last_response(student_id)
+        consecutive = self._get_consecutive_questions(student_id)
         pacing = self.pacing_controller.control(
-            context.student_id, time_since_last, consecutive, state
+            student_id, time_since_last, consecutive, state
         )
 
         # 3. 惯性检测
-        last_method = self._get_last_method(context.student_id)
+        last_method = self._get_last_method(student_id)
         inertia_method = self.inertia_detector.detect(
-            context.student_id, last_method
+            student_id, last_method
         )
+
+        # 更新状态
+        import time
+        self._last_response_time[student_id] = time.time()
+        if state in [StudentState.DEEP_STUCK, StudentState.PARTIAL_STUCK]:
+            self._consecutive_questions[student_id] = consecutive + 1
+        else:
+            self._consecutive_questions[student_id] = 0
 
         return PersonalizationResult(
             difficulty_level=difficulty,
@@ -229,16 +241,25 @@ class PersonalizationLayer:
         )
 
     def _get_recent_performance(self, student_id: str) -> List[Dict]:
-        """获取最近表现（简化实现）"""
+        """获取最近表现"""
+        if self.db:
+            try:
+                return self.db.get_recent_performance(int(student_id), limit=10)
+            except Exception:
+                pass
         return []
 
     def _get_time_since_last_response(self, student_id: str) -> float:
         """获取距离上次回复的时间（秒）"""
-        return 30.0  # 默认30秒
+        import time
+        last_time = self._last_response_time.get(student_id, 0)
+        if last_time == 0:
+            return 30.0
+        return time.time() - last_time
 
     def _get_consecutive_questions(self, student_id: str) -> int:
         """获取连续追问次数"""
-        return 0
+        return self._consecutive_questions.get(student_id, 0)
 
     def _get_last_method(self, student_id: str) -> str:
         """获取上次使用的方法"""

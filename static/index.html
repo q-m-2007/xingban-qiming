@@ -17,7 +17,7 @@
             <a href="/" class="active">首页</a>
             <a href="/chat">开始学习</a>
             <a href="/diagnosis">学习诊断</a>
-            <a href="/login" class="btn btn-primary">登录</a>
+            <span id="nav-auth"></span>
         </div>
     </nav>
 
@@ -159,6 +159,19 @@
     <script src="/static/js/ScrollTrigger.min.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
+        // 更新导航栏登录状态
+        function updateNavAuth() {
+            const navAuth = document.getElementById('nav-auth');
+            if (!navAuth) return;
+            const user = getUser();
+            if (user) {
+                navAuth.innerHTML = '<a href="/chat" class="btn btn-primary">' + (user.nickname || user.username) + '</a>';
+            } else {
+                navAuth.innerHTML = '<a href="/login" class="btn btn-primary">登录</a>';
+            }
+        }
+        updateNavAuth();
+
         // 注册ScrollTrigger插件
         gsap.registerPlugin(ScrollTrigger);
 

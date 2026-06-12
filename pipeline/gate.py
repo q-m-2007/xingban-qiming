@@ -6,7 +6,7 @@
 """
 
 import re
-from typing import List, Optional
+from typing import List, Optional, Dict
 from .models import GateResult, PipelineContext
 
 
@@ -126,11 +126,12 @@ class GateLayer:
         self.silence_engine = SilenceDecisionEngine()
         self.thinking_boundary = ThinkingBoundary()
         self.input_validator = InputValidator()
-        self.consecutive_questions = 0
+        self._consecutive_questions: Dict[str, int] = {}
 
     def process(self, context: PipelineContext) -> GateResult:
         """处理守门层逻辑"""
         student_input = context.student_input
+        student_id = context.student_id
 
         # 1. 输入验证
         result = self.input_validator.validate(student_input)
@@ -138,14 +139,15 @@ class GateLayer:
             return result
 
         # 2. 沉默决策
+        consecutive = self._consecutive_questions.get(student_id, 0)
         result = self.silence_engine.should_stay_silent(
-            student_input, self.consecutive_questions
+            student_input, consecutive
         )
         if result is not None:
             return result
 
         # 3. 正常通过
-        self.consecutive_questions = 0
+        self._consecutive_questions[student_id] = 0
         return GateResult(
             should_respond=True,
             input_valid=True,
@@ -157,10 +159,10 @@ class GateLayer:
         """检查回复是否在思考边界内"""
         return self.thinking_boundary.check(response_text)
 
-    def increment_question_count(self):
+    def increment_question_count(self, student_id: str):
         """增加追问计数"""
-        self.consecutive_questions += 1
+        self._consecutive_questions[student_id] = self._consecutive_questions.get(student_id, 0) + 1
 
-    def reset_question_count(self):
+    def reset_question_count(self, student_id: str):
         """重置追问计数"""
-        self.consecutive_questions = 0
+        self._consecutive_questions[student_id] = 0

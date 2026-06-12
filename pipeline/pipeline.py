@@ -26,13 +26,13 @@ from .evolution import EvolutionLayer
 class UnifiedTeachingPipeline:
     """统一教学管道"""
 
-    def __init__(self, llm_client=None):
+    def __init__(self, llm_client=None, db_module=None):
         # 初始化各层
         self.gate = GateLayer()
         self.perception = PerceptionLayer()
         self.validation = ValidationLayer()
         self.reasoning = ReasoningLayer()
-        self.personalization = PersonalizationLayer()
+        self.personalization = PersonalizationLayer(db_module=db_module)
         self.decision = DecisionLayer()
         self.execution = ExecutionLayer()
         self.evolution = EvolutionLayer()
@@ -42,6 +42,9 @@ class UnifiedTeachingPipeline:
 
         # LLM客户端（可选）
         self.llm_client = llm_client
+
+        # 数据库模块（可选）
+        self.db = db_module
 
     async def process(self, student_id: str, student_input: str,
                       topic: str = "",
@@ -143,11 +146,11 @@ class UnifiedTeachingPipeline:
         if context.profile:
             self.profiles[student_id] = context.profile
 
-        # 追问计数
+        # 追问计数（per-student）
         if context.decision and context.decision.inquiry_type.value != "silence":
-            self.gate.increment_question_count()
+            self.gate.increment_question_count(student_id)
         else:
-            self.gate.reset_question_count()
+            self.gate.reset_question_count(student_id)
 
         # 构建响应
         total_time = (time.time() - start_time) * 1000
