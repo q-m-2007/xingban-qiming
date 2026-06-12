@@ -327,6 +327,8 @@ def init_grade9():
          "反比例函数y=3/x的图像经过哪些象限？", 0.5),
     ]
 
+    misconceptions.extend(extra_misconceptions)
+
     # ═══第三轮优化：补充中考易错点═══
     exam_misconceptions = [
         # 折叠问题
@@ -443,6 +445,8 @@ def init_grade9():
         (kp_ids["G9-IP-01"], "填空", "反比例函数y=(m-1)/x的图像在第二、四象限，则m的取值范围是______", "m<1", "二四象限k<0→m-1<0→m<1", 0.4),
         (kp_ids["G9-IP-03"], "解答", "如图一次函数y=kx+b与反比例函数y=4/x交于A(1,m)和B(n,-2)。(1)求一次函数解析式；(2)根据图像直接写出kx+b>4/x的x取值范围", "y=2x+2；x>1或-2<x<0", "A(1,m)在y=4/x上→m=4。B(n,-2)→-2=4/n→n=-2。代入y=kx+b：k+b=4，-2k+b=-2→k=2,b=2。由图像交点为(1,4)和(-2,-2)，在交点处一次函数大于反比例函数", 0.7),
     ]
+
+    questions.extend(extra_questions)
 
     # ═══第三轮优化：补充河北中考特有题型═══
     exam_questions = [
