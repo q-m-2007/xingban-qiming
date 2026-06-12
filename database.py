@@ -245,14 +245,10 @@ def _init_base_data(conn):
 
     # 初始化误解模式
     misconceptions = [
-        (None, '分母越大分数越大', 'fraction_denominator', '误以为分母越大分数越大',
-         '1/2和1/4哪个大？', '分数比较要看整体大小', '想想披萨切的份数越多，每块越小'),
-        (None, '三角形面积不除以2', 'triangle_area', '忘记三角形面积要除以2',
-         '底4高3的三角形面积是12还是6？', '三角形是平行四边形的一半', '把长方形沿对角线剪开看看'),
-        (None, '运算顺序错误', 'operation_order', '先算加法再算乘法',
-         '2+3×4等于20还是14？', '先乘除后加减', '有括号要先算括号里面的'),
-        (None, '小数位数越多越大', 'decimal_digits', '误以为小数位数越多数值越大',
-         '0.5和0.12哪个大？', '小数比较从高位开始', '想想5角和1角2分哪个多'),
+        ('分母越大分数越大', '误以为分母越大分数越大', '1/2和1/4哪个大？', '分数比较要看整体大小', '想想披萨切的份数越多，每块越小'),
+        ('三角形面积不除以2', '忘记三角形面积要除以2', '底4高3的三角形面积是12还是6？', '三角形是平行四边形的一半', '把长方形沿对角线剪开看看'),
+        ('运算顺序错误', '先算加法再算乘法', '2+3×4等于20还是14？', '先乘除后加减', '有括号要先算括号里面的'),
+        ('小数位数越多越大', '误以为小数位数越多数值越大', '0.5和0.12哪个大？', '小数比较从高位开始', '想想5角和1角2分哪个多'),
     ]
 
     cursor.execute("SELECT id FROM knowledge_points WHERE code='four_operations'")
@@ -261,7 +257,7 @@ def _init_base_data(conn):
     for m in misconceptions:
         cursor.execute(
             "INSERT INTO misconceptions (knowledge_point_id, pattern, description, counter_example, principle, rebuild_question) VALUES (?, ?, ?, ?, ?, ?)",
-            (kp_id, m[0], m[2], m[3], m[4], m[5])
+            (kp_id, m[0], m[1], m[2], m[3], m[4])
         )
 
     conn.commit()

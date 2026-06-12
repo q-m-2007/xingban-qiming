@@ -7,11 +7,14 @@
 
 import re
 import hashlib
+import logging
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 from .models import (
     PerceptionResult, MatchResult, Belief, PipelineContext
 )
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeMatcher:
@@ -196,13 +199,47 @@ class EmotionDetector:
 class PerceptionLayer:
     """感知层主类"""
 
-    def __init__(self):
+    def __init__(self, db_module=None):
         self.matcher = KnowledgeMatcher()
         self.belief_extractor = RuleBasedBeliefExtractor()
         self.emotion_detector = EmotionDetector()
+        self.db = db_module
+        self._db_rules_loaded = False
+
+    def _load_rules_from_db(self):
+        """从数据库加载规则（延迟加载）"""
+        if not self.db or self._db_rules_loaded:
+            return
+
+        try:
+            # 加载误解模式
+            misconceptions = []
+            grades = self.db.get_grades()
+            for grade in grades:
+                kps = self.db.get_knowledge_points(grade['id'])
+                for kp in kps:
+                    mis_list = self.db.get_misconceptions(kp['id'])
+                    for mis in mis_list:
+                        misconceptions.append((
+                            mis['pattern'],
+                            f"misconception_{kp['code']}_{mis['id']}",
+                            mis['description'],
+                            0.7
+                        ))
+
+            if misconceptions:
+                self.belief_extractor.MISCONCEPTION_PATTERNS.extend(misconceptions)
+                logger.info(f"从数据库加载了 {len(misconceptions)} 个误解模式")
+
+            self._db_rules_loaded = True
+        except Exception as e:
+            logger.warning(f"从数据库加载规则失败: {e}")
 
     def process(self, context: PipelineContext) -> PerceptionResult:
         """处理感知层逻辑"""
+        # 延迟加载数据库规则
+        self._load_rules_from_db()
+
         student_input = context.student_input
 
         # 1. 知识匹配

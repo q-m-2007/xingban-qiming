@@ -32,13 +32,13 @@ class UnifiedTeachingPipeline:
     def __init__(self, llm_client=None, db_module=None):
         # 初始化各层
         self.gate = GateLayer()
-        self.perception = PerceptionLayer()
+        self.perception = PerceptionLayer(db_module=db_module)
         self.validation = ValidationLayer()
         self.reasoning = ReasoningLayer()
         self.personalization = PersonalizationLayer(db_module=db_module)
         self.decision = DecisionLayer()
         self.execution = ExecutionLayer()
-        self.evolution = EvolutionLayer()
+        self.evolution = EvolutionLayer(db_module=db_module)
 
         # 学生画像存储
         self.profiles: Dict[str, CognitiveProfile] = {}

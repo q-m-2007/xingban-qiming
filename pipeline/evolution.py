@@ -5,12 +5,15 @@
 """
 
 import math
+import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from .models import (
     CognitiveProfile, Misconception, MisconceptionState,
     PipelineContext, ExecutionResult, StudentState
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileUpdater:
@@ -283,13 +286,14 @@ class OverfittingGuard:
 class EvolutionLayer:
     """进化层主类"""
 
-    def __init__(self):
+    def __init__(self, db_module=None):
         self.profile_updater = ProfileUpdater()
         self.misconception_evolver = MisconceptionEvolver()
         self.knowledge_expander = KnowledgeBaseExpander()
         self.strategy_optimizer = StrategyOptimizer()
         self.aging_detector = KnowledgeAgingDetector()
         self.overfitting_guard = OverfittingGuard()
+        self.db = db_module
 
     def process(self, context: PipelineContext) -> PipelineContext:
         """处理进化层逻辑（后台异步）"""
@@ -298,6 +302,31 @@ class EvolutionLayer:
             context.profile = self.profile_updater.update(
                 context.profile, context
             )
+
+            # 保存画像到数据库
+            if self.db:
+                try:
+                    self.db.save_user_profile(int(context.student_id), {
+                        'visual': context.profile.visual,
+                        'verbal': context.profile.verbal,
+                        'kinesthetic': context.profile.kinesthetic,
+                        'inductive': context.profile.inductive,
+                        'deductive': context.profile.deductive,
+                        'analogical': context.profile.analogical,
+                        'fast_jump': context.profile.fast_jump,
+                        'rigorous': context.profile.rigorous,
+                        'divergent': context.profile.divergent,
+                        'abstract_reasoning': context.profile.abstract_reasoning,
+                        'challenge_drive': context.profile.challenge_drive,
+                        'persistence': context.profile.persistence,
+                        'metacognition': context.profile.metacognition,
+                        'collaboration': context.profile.collaboration,
+                        'creativity': context.profile.creativity,
+                        'confidence': context.profile.confidence,
+                        'data_points': context.profile.data_points,
+                    })
+                except Exception as e:
+                    logger.warning(f"保存画像失败: {e}")
 
         # 2. 演化误解状态
         if context.validation and context.validation.misconceptions:
@@ -308,18 +337,21 @@ class EvolutionLayer:
         # 3. 检查知识库扩展
         expansion = self.knowledge_expander.check_and_expand(context)
         if expansion:
-            # 记录扩展日志
-            pass
+            logger.info(f"知识库扩展建议: {expansion}")
 
         # 4. 检查过拟合
         history = self._get_history(context.student_id)
         overfitting = self.overfitting_guard.check_overfitting(history)
         if overfitting["overfitting"]:
-            # 记录过拟合警告
-            pass
+            logger.warning(f"过拟合警告: {overfitting['reason']}")
 
         return context
 
     def _get_history(self, student_id: str) -> List[Dict]:
         """获取学生历史记录"""
+        if self.db:
+            try:
+                return self.db.get_recent_performance(int(student_id), limit=20)
+            except Exception:
+                pass
         return []
