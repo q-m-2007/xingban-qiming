@@ -155,6 +155,79 @@
         <p>© 2026 星伴·启明 - AI智能数学辅导系统</p>
     </footer>
 
+    <script src="/static/js/gsap.min.js"></script>
+    <script src="/static/js/ScrollTrigger.min.js"></script>
     <script src="/static/js/app.js"></script>
+    <script>
+        // 注册ScrollTrigger插件
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Hero区动画
+        gsap.from('.hero-badge', {
+            opacity: 0,
+            y: 30,
+            duration: 0.8,
+            delay: 0.2
+        });
+        gsap.from('.hero h1', {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+            delay: 0.4
+        });
+        gsap.from('.hero p', {
+            opacity: 0,
+            y: 30,
+            duration: 0.8,
+            delay: 0.6
+        });
+        gsap.from('.hero-buttons', {
+            opacity: 0,
+            y: 30,
+            duration: 0.8,
+            delay: 0.8
+        });
+
+        // 特性卡片滚动动画
+        gsap.utils.toArray('.feature-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                opacity: 0,
+                y: 60,
+                duration: 0.6,
+                delay: i * 0.1
+            });
+        });
+
+        // 算法层级动画
+        gsap.utils.toArray('.layer').forEach((layer, i) => {
+            gsap.from(layer, {
+                scrollTrigger: {
+                    trigger: layer,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                opacity: 0,
+                x: -50,
+                duration: 0.5,
+                delay: i * 0.08
+            });
+        });
+
+        // CTA区动画
+        gsap.from('.cta h2', {
+            scrollTrigger: {
+                trigger: '.cta',
+                start: 'top 80%'
+            },
+            opacity: 0,
+            y: 40,
+            duration: 0.8
+        });
+    </script>
 </body>
 </html>
