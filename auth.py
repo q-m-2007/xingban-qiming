@@ -17,6 +17,10 @@ _tokens: Dict[str, Dict] = {}
 # Token过期时间（秒）
 TOKEN_EXPIRE = 86400  # 24小时
 
+# 清理计数器
+_cleanup_counter = 0
+_CLEANUP_INTERVAL = 100  # 每100次请求清理一次
+
 
 def generate_token(user_id: int, username: str) -> str:
     """生成Token"""
@@ -33,6 +37,14 @@ def generate_token(user_id: int, username: str) -> str:
 
 def verify_token(token: str) -> Optional[Dict]:
     """验证Token（含过期检查）"""
+    global _cleanup_counter
+
+    # 定期清理过期Token
+    _cleanup_counter += 1
+    if _cleanup_counter >= _CLEANUP_INTERVAL:
+        _cleanup_counter = 0
+        cleanup_expired_tokens()
+
     if token not in _tokens:
         return None
 

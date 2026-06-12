@@ -6,6 +6,7 @@
 """
 
 import math
+import time
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from .models import (
@@ -226,7 +227,6 @@ class PersonalizationLayer:
         )
 
         # 更新状态
-        import time
         self._last_response_time[student_id] = time.time()
         if state in [StudentState.DEEP_STUCK, StudentState.PARTIAL_STUCK]:
             self._consecutive_questions[student_id] = consecutive + 1
@@ -251,7 +251,6 @@ class PersonalizationLayer:
 
     def _get_time_since_last_response(self, student_id: str) -> float:
         """获取距离上次回复的时间（秒）"""
-        import time
         last_time = self._last_response_time.get(student_id, 0)
         if last_time == 0:
             return 30.0

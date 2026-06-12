@@ -165,7 +165,7 @@
             if (!navAuth) return;
             const user = getUser();
             if (user) {
-                navAuth.innerHTML = '<a href="/chat" class="btn btn-primary">' + (user.nickname || user.username) + '</a>';
+                navAuth.innerHTML = '<span style="display:flex;gap:8px;align-items:center;"><a href="/chat" class="btn btn-primary">' + (user.nickname || user.username) + '</a><a href="#" onclick="logout()" class="btn btn-ghost">退出</a></span>';
             } else {
                 navAuth.innerHTML = '<a href="/login" class="btn btn-primary">登录</a>';
             }

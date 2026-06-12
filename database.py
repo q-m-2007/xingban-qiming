@@ -39,11 +39,16 @@ def hash_password(password: str, salt: str = None) -> tuple:
 
 
 def verify_password(password: str, stored: str) -> bool:
-    """验证密码"""
+    """验证密码（兼容旧版明文密码）"""
     try:
-        salt, hashed = stored.split(':', 1)
-        new_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
-        return new_hash.hex() == hashed
+        # 尝试新版哈希格式
+        if ':' in stored:
+            salt, hashed = stored.split(':', 1)
+            new_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
+            return new_hash.hex() == hashed
+        # 兼容旧版明文密码
+        else:
+            return password == stored
     except Exception:
         return False
 
