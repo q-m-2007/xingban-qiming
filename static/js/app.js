@@ -18,15 +18,20 @@ function removeToken() {
 }
 
 function getUser() {
-    const data = localStorage.getItem('user');
-    return data ? JSON.parse(data) : null;
+    try {
+        const data = localStorage.getItem('user');
+        return data ? JSON.parse(data) : null;
+    } catch (e) {
+        return null;
+    }
 }
 
 function setUser(user) {
     localStorage.setItem('user', JSON.stringify(user));
 }
 
-async function apiCall(path, options = {}) {
+// API调用（带重试）
+async function apiCall(path, options = {}, retries = 2) {
     const token = getToken();
     const headers = {
         'Content-Type': 'application/json',
@@ -35,16 +40,34 @@ async function apiCall(path, options = {}) {
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    const resp = await fetch(`${API_BASE}${path}`, {
-        ...options,
-        headers,
-    });
-    if (resp.status === 401) {
-        removeToken();
-        window.location.href = '/login';
-        return;
+
+    for (let i = 0; i <= retries; i++) {
+        try {
+            const resp = await fetch(`${API_BASE}${path}`, {
+                ...options,
+                headers,
+            });
+
+            if (resp.status === 401) {
+                removeToken();
+                window.location.href = '/login';
+                return null;
+            }
+
+            if (!resp.ok) {
+                const error = await resp.json().catch(() => ({ detail: '请求失败' }));
+                throw new Error(error.detail || `HTTP ${resp.status}`);
+            }
+
+            return await resp.json();
+        } catch (e) {
+            if (i === retries) {
+                throw e;
+            }
+            // 等待后重试
+            await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        }
     }
-    return resp.json();
 }
 
 // 认证
@@ -53,7 +76,7 @@ async function register(username, password, nickname) {
         method: 'POST',
         body: JSON.stringify({ username, password, nickname }),
     });
-    if (data.token) {
+    if (data && data.token) {
         setToken(data.token);
         setUser({ user_id: data.user_id, username: data.username, nickname: data.nickname });
     }
@@ -65,7 +88,7 @@ async function login(username, password) {
         method: 'POST',
         body: JSON.stringify({ username, password }),
     });
-    if (data.token) {
+    if (data && data.token) {
         setToken(data.token);
         setUser({ user_id: data.user_id, username: data.username, nickname: data.nickname });
     }
@@ -75,6 +98,7 @@ async function login(username, password) {
 function logout() {
     removeToken();
     localStorage.removeItem('user');
+    localStorage.removeItem('session_id');
     window.location.href = '/login';
 }
 
@@ -88,6 +112,7 @@ function checkAuth() {
 
 // 聊天
 let currentSessionId = '';
+let isSending = false;
 
 function initChat() {
     if (!checkAuth()) return;
@@ -102,6 +127,21 @@ function initChat() {
     localStorage.setItem('session_id', currentSessionId);
 
     loadHistory();
+
+    // 移动端输入框处理
+    setupMobileInput();
+}
+
+function setupMobileInput() {
+    const input = document.getElementById('chat-input');
+    if (!input) return;
+
+    // 聚焦时滚动到底部
+    input.addEventListener('focus', () => {
+        setTimeout(() => {
+            scrollToBottom();
+        }, 300);
+    });
 }
 
 function generateSessionId() {
@@ -174,6 +214,8 @@ function scrollToBottom() {
 }
 
 async function sendMessage() {
+    if (isSending) return;
+
     const input = document.getElementById('chat-input');
     if (!input) return;
 
@@ -183,6 +225,11 @@ async function sendMessage() {
     input.value = '';
     addMessage('user', message);
     showLoading();
+    isSending = true;
+
+    // 禁用发送按钮
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) sendBtn.disabled = true;
 
     try {
         const data = await apiCall('/api/v3/chat/message', {
@@ -201,12 +248,22 @@ async function sendMessage() {
                 localStorage.setItem('current_topic', data.topic);
             }
         } else if (data && data.detail) {
-            addMessage('system', '错误：' + data.detail);
+            addMessage('system', '抱歉，出了点问题：' + data.detail);
+        } else {
+            addMessage('system', '抱歉，我没有收到有效回复，请重试');
         }
     } catch (e) {
         hideLoading();
-        addMessage('system', '网络错误，请重试');
+        if (e.message.includes('Failed to fetch')) {
+            addMessage('system', '网络连接失败，请检查网络后重试');
+        } else {
+            addMessage('system', '抱歉，出了点问题：' + (e.message || '请重试'));
+        }
         console.error('Send failed:', e);
+    } finally {
+        isSending = false;
+        if (sendBtn) sendBtn.disabled = false;
+        input.focus();
     }
 }
 
@@ -227,6 +284,10 @@ async function loadDiagnosis() {
         }
     } catch (e) {
         console.error('Load diagnosis failed:', e);
+        const container = document.getElementById('diagnosis-content');
+        if (container) {
+            container.textContent = '加载失败，请刷新重试';
+        }
     }
 }
 
@@ -249,11 +310,20 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const btn = loginForm.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
             try {
-                await login(username, password);
-                window.location.href = '/chat';
+                const result = await login(username, password);
+                if (result && result.token) {
+                    window.location.href = '/chat';
+                } else {
+                    alert('登录失败：' + (result?.detail || '用户名或密码错误'));
+                }
             } catch (err) {
-                alert('登录失败：' + (err.message || '用户名或密码错误'));
+                alert('登录失败：' + (err.message || '网络错误，请重试'));
+            } finally {
+                if (btn) btn.disabled = false;
             }
         });
     }
@@ -266,11 +336,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = document.getElementById('reg-username').value;
             const password = document.getElementById('reg-password').value;
             const nickname = document.getElementById('reg-nickname').value;
+            const btn = registerForm.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
             try {
-                await register(username, password, nickname);
-                window.location.href = '/chat';
+                const result = await register(username, password, nickname);
+                if (result && result.token) {
+                    window.location.href = '/chat';
+                } else {
+                    alert('注册失败：' + (result?.detail || '用户名可能已存在'));
+                }
             } catch (err) {
-                alert('注册失败：' + (err.message || '用户名可能已存在'));
+                alert('注册失败：' + (err.message || '网络错误，请重试'));
+            } finally {
+                if (btn) btn.disabled = false;
             }
         });
     }

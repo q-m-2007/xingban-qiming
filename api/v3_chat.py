@@ -124,6 +124,22 @@ async def v3_chat_message(msg: ChatMessage, user: dict = Depends(auth.get_curren
             state=result.get("state", ""),
         )
 
+        # 保存学习记录（如果检测到答题）
+        topic = result.get("topic", "")
+        state = result.get("state", "")
+        if topic and state in ["exploring", "partial_stuck", "deep_stuck"]:
+            # 判断是否答对（简化逻辑：如果状态是exploring且没有误解，认为答对）
+            is_correct = state == "exploring" and not result.get("debug", {}).get("validation", {}).get("misconceptions_count", 0)
+            database.save_learning_record(
+                user_id=user_id,
+                topic=topic,
+                question=msg.message,
+                answer=response_text,
+                is_correct=is_correct,
+                time_spent=result.get("performance", {}).get("total_ms", 0) / 1000,
+                difficulty=result.get("debug", {}).get("personalization", {}).get("difficulty", 0.5),
+            )
+
         return ChatResponse(
             response=response_text,
             topic=result.get("topic", ""),

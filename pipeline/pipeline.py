@@ -5,8 +5,11 @@
 """
 
 import time
+import logging
 from typing import Dict, List, Optional
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     PipelineContext, GateResult, PerceptionResult, ValidationResult,
@@ -142,9 +145,32 @@ class UnifiedTeachingPipeline:
         context = self.evolution.process(context)
         context.layer_times["evolution"] = (time.time() - layer_start) * 1000
 
-        # 更新画像
+        # 更新画像（内存+数据库）
         if context.profile:
             self.profiles[student_id] = context.profile
+            if self.db:
+                try:
+                    self.db.save_user_profile(int(student_id), {
+                        'visual': context.profile.visual,
+                        'verbal': context.profile.verbal,
+                        'kinesthetic': context.profile.kinesthetic,
+                        'inductive': context.profile.inductive,
+                        'deductive': context.profile.deductive,
+                        'analogical': context.profile.analogical,
+                        'fast_jump': context.profile.fast_jump,
+                        'rigorous': context.profile.rigorous,
+                        'divergent': context.profile.divergent,
+                        'abstract_reasoning': context.profile.abstract_reasoning,
+                        'challenge_drive': context.profile.challenge_drive,
+                        'persistence': context.profile.persistence,
+                        'metacognition': context.profile.metacognition,
+                        'collaboration': context.profile.collaboration,
+                        'creativity': context.profile.creativity,
+                        'confidence': context.profile.confidence,
+                        'data_points': context.profile.data_points,
+                    })
+                except Exception as e:
+                    logger.warning(f"保存画像失败: {e}")
 
         # 追问计数（per-student）
         if context.decision and context.decision.inquiry_type.value != "silence":
@@ -161,8 +187,39 @@ class UnifiedTeachingPipeline:
         )
 
     def _get_or_create_profile(self, student_id: str) -> CognitiveProfile:
-        """获取或创建学生画像"""
+        """获取或创建学生画像（优先从数据库加载）"""
         if student_id not in self.profiles:
+            # 尝试从数据库加载
+            if self.db:
+                try:
+                    db_profile = self.db.get_user_profile(int(student_id))
+                    if db_profile:
+                        profile = CognitiveProfile(
+                            student_id=student_id,
+                            visual=db_profile.get('visual', 0.5),
+                            verbal=db_profile.get('verbal', 0.5),
+                            kinesthetic=db_profile.get('kinesthetic', 0.5),
+                            inductive=db_profile.get('inductive', 0.5),
+                            deductive=db_profile.get('deductive', 0.5),
+                            analogical=db_profile.get('analogical', 0.5),
+                            fast_jump=db_profile.get('fast_jump', 0.5),
+                            rigorous=db_profile.get('rigorous', 0.5),
+                            divergent=db_profile.get('divergent', 0.5),
+                            abstract_reasoning=db_profile.get('abstract_reasoning', 0.5),
+                            challenge_drive=db_profile.get('challenge_drive', 0.5),
+                            persistence=db_profile.get('persistence', 0.5),
+                            metacognition=db_profile.get('metacognition', 0.5),
+                            collaboration=db_profile.get('collaboration', 0.5),
+                            creativity=db_profile.get('creativity', 0.5),
+                            confidence=db_profile.get('confidence', 0.3),
+                            data_points=db_profile.get('data_points', 0),
+                        )
+                        self.profiles[student_id] = profile
+                        return profile
+                except Exception as e:
+                    logger.warning(f"加载画像失败: {e}")
+
+            # 创建新画像
             self.profiles[student_id] = CognitiveProfile(
                 student_id=student_id,
                 created_at=datetime.now(),
